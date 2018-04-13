@@ -26,7 +26,7 @@ class BPPCA(object):
         else:
             print("Try a valid method, please")
 
-    def fit_gaussian(self, data, iter=100):
+    def fit_gaussian(self, data, iter=1000):
         N, d = data.shape
         q = d-1
         mu = np.mean(data, axis=0)
@@ -42,7 +42,6 @@ class BPPCA(object):
                 x[i] = np.matmul(np.matmul(np.linalg.inv(M), W.T), data[i]-mu).reshape(-1,1)
                 xx[i] = (sigma*M + np.matmul(x[i], x[i].T))
             A = np.diag(alpha)
-            # print(x[i].T.shape)
             W = np.matmul(sum([np.matmul((data[i]-mu).reshape(-1,1), x[i].T) for i in range(N)]), np.linalg.inv(sum(xx)+sigma*A))
             sigma = (1.0/(N*d)) * sum([np.linalg.norm(data[i]-mu)**2 - np.matmul(2*np.matmul(x[i].T,W.T),data[i]-mu) + np.trace(np.matmul(xx[i], np.matmul(W.T, W))) for i in range(N)])
             M = np.matmul(W.T, W) + sigma * np.eye(q)

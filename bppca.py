@@ -49,8 +49,8 @@ class BPPCA(object):
             for i in range(q):
                 alpha[i] = d / (np.linalg.norm(W[:,i])+0.0001)
             A = np.diag(alpha)
-            W = np.matmul(sum([np.matmul((data[i]-mu).reshape(-1,1), x[i].reshape(-1,1).T) for i in range(N)]), np.linalg.inv(sum(xx+sigma*A)))
-            sigma = (1.0/(N*d)) * sum([np.linalg.norm(data[i]-mu)**2 - np.dot(2*np.dot(x[i].T,W.T),data[i]-mu) + np.trace(np.dot(xx[i], np.dot(W.T, W))) for i in range(N)])
+            W = np.matmul(sum([np.matmul((data[i]-mu).reshape(-1,1), x[i].T) for i in range(N)]), np.linalg.inv(sum(xx)+sigma*A))
+            sigma = (1.0/(N*d)) * sum([np.linalg.norm(data[i]-mu)**2 - np.matmul(2*np.matmul(x[i].T,W.T),data[i]-mu) + np.trace(np.matmul(xx[i], np.matmul(W.T, W))) for i in range(N)])
             M = np.matmul(W.T, W) + sigma * np.eye(q)
         self.W = W
         self.sigma = sigma

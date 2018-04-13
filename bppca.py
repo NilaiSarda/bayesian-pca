@@ -26,31 +26,32 @@ class BPPCA(object):
         else:
             print("Try a valid method, please")
 
-    def fit_gaussian(self, data, iter=20):
+    def fit_gaussian(self, data, iter=100):
         N, d = data.shape
         q = d-1
-        mu = np.sum(data, axis=0)
-        W = np.ones((d, q))/N
+        mu = np.mean(data, axis=0)
+        W = np.random.normal(0,1,size=(d, q))
         sigma = 0.1
-        alpha = np.ones(q)
+        alpha = np.random.randn(q)
         M = np.matmul(W.T, W) + sigma * np.eye(q)
         x = [None for i in range(N)]
         xx = [None for i in range(N)]
         for _ in range(iter):
             # We update the moments of x_n
             for i in range(N):
-                x[i] = np.dot(np.dot(np.linalg.inv(M), W.T), data[i]-mu)
-                xx[i] = sigma*M + np.dot(x[i], x[i].T)
+                x[i] = np.matmul(np.matmul(np.linalg.inv(M), W.T), data[i]-mu).reshape(-1,1)
+                xx[i] = (sigma*M + np.matmul(x[i], x[i].T))
             A = np.diag(alpha)
             # print(x[i].T.shape)
-            W = np.matmul(sum([np.matmul((data[i]-mu).reshape(-1,1), x[i].reshape(-1,1).T) for i in range(N)]), np.linalg.inv(sum(xx)+sigma*A))
-            sigma = (1/(N*d)) * sum([np.linalg.norm(data[i]-mu)**2 - np.dot(2*np.dot(x[i].T,W.T),data[i]-mu) + np.trace(np.dot(xx[i], np.dot(W.T, W))) for i in range(N)])
-            # We update alpha
+            W = np.matmul(sum([np.matmul((data[i]-mu).reshape(-1,1), x[i].T) for i in range(N)]), np.linalg.inv(sum(xx)+sigma*A))
+            sigma = (1.0/(N*d)) * sum([np.linalg.norm(data[i]-mu)**2 - np.matmul(2*np.matmul(x[i].T,W.T),data[i]-mu) + np.trace(np.matmul(xx[i], np.matmul(W.T, W))) for i in range(N)])
+            M = np.matmul(W.T, W) + sigma * np.eye(q)
             for i in range(q):
-                alpha[i] = d / np.linalg.norm(W[i])
+                alpha[i] = d / (np.linalg.norm(W[:,i])+0.0001)
             A = np.diag(alpha)
-            W = np.matmul(sum([np.matmul((data[i]-mu).reshape(-1,1), x[i].reshape(-1,1).T) for i in range(N)]), np.linalg.inv(sum(xx)+sigma*A))
-            sigma = (1/(N*d)) * sum([np.linalg.norm(data[i]-mu)**2 - np.dot(2*np.dot(x[i].T,W.T),data[i]-mu) + np.trace(np.dot(xx[i], np.dot(W.T, W))) for i in range(N)])
+            W = np.matmul(sum([np.matmul((data[i]-mu).reshape(-1,1), x[i].reshape(-1,1).T) for i in range(N)]), np.linalg.inv(sum(xx+sigma*A)))
+            sigma = (1.0/(N*d)) * sum([np.linalg.norm(data[i]-mu)**2 - np.dot(2*np.dot(x[i].T,W.T),data[i]-mu) + np.trace(np.dot(xx[i], np.dot(W.T, W))) for i in range(N)])
+            M = np.matmul(W.T, W) + sigma * np.eye(q)
         self.W = W
         self.sigma = sigma
         self.alpha = alpha
@@ -67,11 +68,14 @@ class BPPCA(object):
         N = self.N
         q = self.q
         alpha = self.alpha
-        S = 1/N * sum([np.dot(data[i]-mu, (data[i]-mu).T) for i in range(N)])
-        C = np.dot(W.T,W) + sigma*np.eye(q)
-        L = -N/2 * (d * np.log(2*np.pi) + np.log(np.linalg.norm(C)) + np.trace(np.dot(np.linalg.inv(C), S)))
-        F = 1/2 * sum([alpha[i] * np.linalg.norm(W[i])**2 for i in range(q)])
-        return L - F
+        S = 1.0/N * sum([np.outer(data[i]-mu, data[i]-mu) for i in range(N)])
+        print(S)
+        C = np.matmul(W,W.T) + sigma*np.eye(d)
+        print(C)
+        L = -1.0/2 * (d * np.log(2*np.pi) + np.log(np.sum(C)) + np.trace(np.matmul(np.linalg.inv(C), S)))
+        print("L",np.log(np.sum(C)),np.trace(np.matmul(np.linalg.inv(C), S)),d * np.log(2*np.pi))
+        F = -1.0/(2*N) * sum([alpha[i] * np.linalg.norm(W[i])**2 for i in range(q)])
+        return (L + F)/N
 
 
 class GaussianDataset(object):
@@ -81,7 +85,7 @@ class GaussianDataset(object):
         data = np.zeros((N, d))
         for i in range(N):
             for j in range(d):
-                data[i, j] = np.random.normal(0, stdev[j])
+                data[i, j] = np.random.normal(1, stdev[j])
         self._data = data
         self._shape = (N, d)
 
@@ -111,9 +115,10 @@ class IrisDataset(object):
 
 
 stdev = [1.0, 1.0, 1.0, 0.1, 0.1, 0.1]
-d = GaussianDataset(stdev, 20)
+d = GaussianDataset(stdev, 100)
 b = BPPCA('gaussian')
 b.fit(d.data)
+print([np.linalg.norm(b.W[:,i]) for i in range(b.q)])
 print(b.likelihood(d.data))
 
 # d = IrisDataset()

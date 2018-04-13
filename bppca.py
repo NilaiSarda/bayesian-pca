@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn import datasets
 
 '''
 We will (generally) follow three papers in this implementation:
@@ -41,7 +42,7 @@ class BPPCA(object):
                 x[i] = np.dot(np.dot(np.linalg.inv(M), W.T), data[i]-mu)
                 xx[i] = sigma*M + np.dot(x[i], x[i].T)
             A = np.diag(alpha)
-            print(x[i].T.shape)
+            # print(x[i].T.shape)
             W = np.matmul(sum([np.matmul((data[i]-mu).reshape(-1,1), x[i].reshape(-1,1).T) for i in range(N)]), np.linalg.inv(sum(xx)+sigma*A))
             sigma = (1/(N*d)) * sum([np.linalg.norm(data[i]-mu)**2 - np.dot(2*np.dot(x[i].T,W.T),data[i]-mu) + np.trace(np.dot(xx[i], np.dot(W.T, W))) for i in range(N)])
             # We update alpha
@@ -74,6 +75,7 @@ class BPPCA(object):
 
 
 class GaussianDataset(object):
+
     def __init__(self, stdev, N):
         d = len(stdev)
         data = np.zeros((N, d))
@@ -92,8 +94,29 @@ class GaussianDataset(object):
         return self._shape
 
 
+class IrisDataset(object):
+
+    def __init__(self):
+        iris = datasets.load_iris()
+        self._data = iris.data
+        self._shape = iris.data.shape
+
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def shape(self):
+        return self._shape
+
+
 stdev = [1.0, 1.0, 1.0, 0.1, 0.1, 0.1]
 d = GaussianDataset(stdev, 20)
 b = BPPCA('gaussian')
 b.fit(d.data)
 print(b.likelihood(d.data))
+
+# d = IrisDataset()
+# b = BPPCA('gaussian')
+# b.fit(d.data)
+# print(b.likelihood(d.data))

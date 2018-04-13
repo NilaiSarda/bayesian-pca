@@ -88,17 +88,21 @@ class BPPCA(object):
     def fit_gibbs(self, data, iterations):
         N, d = data.shape
         q = np.random.randint(1, d)
-        alpha = 1.0
-        eta = 0.5
-        r = 1.0
+        alpha = N/2
+        eta = 1.0/2
+        r = N/2
         tau = np.random.gamma(alpha, eta)
-        prior_samples = np.sort(np.random.gamma(r, tau, q + 1))
+        print('r:', r)
+        print('tau:', tau)
+        prior_samples = np.sort(np.random.gamma(r, tau, q + 1))[::-1]
         l_inv = np.zeros(d-1)
-        l_inv[:q] = prior_samples[:-1]
-        variance_inv = prior_samples[-1]
+        l_inv[:q] = prior_samples[1:]
+        variance_inv = prior_samples[0]
         mu = np.mean(data, axis=0)
         S = 1.0/N * sum([np.outer(data[i]-mu, data[i]-mu) for i in range(N)])
         A, g, vh = np.linalg.svd(S)
+        print('g[i]:', g)
+        print('q:', q)
         b = np.ones(d)/2.0
         b[1] = 1
         b[d-1] = 0
@@ -109,11 +113,16 @@ class BPPCA(object):
         variance_inv_sum = 0
         for _ in range(iterations):
             for i in range(q):
+                print('left:', N/2 + r)
+                print('right:', N*g[i]/2 + tau)
                 l_inv[i] = np.random.gamma(N/2 + r, N*g[i]/2 + tau)
-                if (i > 0 and l_inv[i] < l_inv[i-1]) or (i < d-2 and l_inv[i] > l_inv[i+1]):
-                    l_inv[i] = 0
+                while (i > 0 and l_inv[i] >= l_inv[i-1]):
+                    l_inv[i] = np.random.gamma(N/2 + r, N*g[i]/2 + tau)
+            print('l_inv[i]:', l_inv)
             variance_inv = np.random.gamma(N*(d-q)/2 + r, N*np.sum(g[q:])/2 + tau)
-            if variance_inv < l_inv[q-1]:
+            while variance_inv <= l_inv[q-1]:
+                print('left (var):', N*(d-q)/2 + r)
+                print('right (var):', N*np.sum(g[q:])/2 + tau)
                 variance_inv = np.random.gamma(N*(d-q)/2 + r, N*np.sum(g[q:])/2 + tau)
             tau = np.random.gamma((q+1)*r + alpha, np.sum(l_inv[:q]) + variance_inv + eta)
             log_likelihood = lambda q : (-N*d/2) * np.log(2*np.pi) + (N/2) * sum([np.log(l_inv[j] + 0.00001) for j in range(q)]) + (N*(d-q)*q/2) * np.log(variance_inv + 0.00001) + (-N/2) * sum([l_inv[j] * g[j] for j in range(q)]) + (-N*variance_inv/2) * sum([g[j] for j in range(q, d)])
@@ -123,8 +132,8 @@ class BPPCA(object):
                 # formula at top of page 3
                 before_log_likelihood = log_likelihood(q)
                 l_inv[q] = np.random.gamma(r, tau)
-                if l_inv[q] < l_inv[q-1] or l_inv[q] > variance_inv:
-                    l_inv[q] = 0
+                while l_inv[q] >= l_inv[q-1] or l_inv[q] >= variance_inv:
+                    l_inv[q] = np.random.gamma(r, tau)
                 log_R = log_likelihood(q+1) - before_log_likelihood + np.log(q+2) + np.log(de[q+1]) - np.log(b[q])
                 print('log_R:', log_R)
                 v = np.random.uniform()

@@ -105,29 +105,26 @@ class BPPCA(object):
         de = np.ones(d)/2.0
         de[1] = 0
         de[d-1] = 1
-        l_inv_sum = np.zeros(d - 1)
+        l_inv_sum = np.zeros(d-1)
         variance_inv_sum = 0
         for _ in range(iterations):
             for i in range(q):
+                l_inv[i] = np.random.gamma(N/2 + r, N*g[i]/2 + tau)
                 if (i > 0 and l_inv[i] < l_inv[i-1]) or (i < d-2 and l_inv[i] > l_inv[i+1]):
                     l_inv[i] = 0
-                else:
-                    l_inv[i] = np.random.gamma(N/2 + r, N*g[i]/2 + tau)
+            variance_inv = np.random.gamma(N*(d-q)/2 + r, N*np.sum(g[q:])/2 + tau)
             if variance_inv < l_inv[q-1]:
-                variance_inv = 0
-            else:
                 variance_inv = np.random.gamma(N*(d-q)/2 + r, N*np.sum(g[q:])/2 + tau)
             tau = np.random.gamma((q+1)*r + alpha, np.sum(l_inv[:q]) + variance_inv + eta)
+            log_likelihood = lambda q : (-N*d/2) * np.log(2*np.pi) + (N/2) * sum([np.log(l_inv[j] + 0.00001) for j in range(q)]) + (N*(d-q)*q/2) * np.log(variance_inv + 0.00001) + (-N/2) * sum([l_inv[j] * g[j] for j in range(q)]) + (-N*variance_inv/2) * sum([g[j] for j in range(q, d)])
             u = np.random.uniform()
-            log_likelihood = lambda q : (-N*d/2) * np.log(2*np.pi) + (N/2) * sum([l_inv[j] for j in range(q)]) + (N*(d-q)*q/2) * np.log(variance_inv + 0.0001) + (-N/2) * sum([l_inv[j] * g[j] for j in range(q)]) + (-N*variance_inv/2) * sum([g[j] for j in range(q, d)])
             if u <= b[q]:  # birth move
                 l_inv_q_prev = l_inv[q]
                 # formula at top of page 3
                 before_log_likelihood = log_likelihood(q)
+                l_inv[q] = np.random.gamma(r, tau)
                 if l_inv[q] < l_inv[q-1] or l_inv[q] > variance_inv:
                     l_inv[q] = 0
-                else:
-                    l_inv[q] = np.random.gamma(r, tau)
                 log_R = log_likelihood(q+1) - before_log_likelihood + np.log(q+2) + np.log(de[q+1]) - np.log(b[q])
                 print('log_R:', log_R)
                 v = np.random.uniform()
@@ -163,7 +160,7 @@ class BPPCA(object):
         np.seterr(divide='ignore')
         print('l_i:', 1.0/l_inv)
         print('variance:', 1.0/variance_inv)
-        log_likelihood = lambda q : (-N*d/2) * np.log(2*np.pi) + (N/2) * sum([l_inv[j] for j in range(q)]) + (N*(d-q)*q/2) * np.log(variance_inv + 0.0001) + (-N/2) * sum([l_inv[j] * g[j] for j in range(q)]) + (-N*variance_inv/2) * sum([g[j] for j in range(q, d)])
+        log_likelihood = lambda q : (-N*d/2) * np.log(2*np.pi) + (N/2) * sum([np.log(l_inv[j] + 0.00001) for j in range(q)]) + (N*(d-q)*q/2) * np.log(variance_inv + 0.00001) + (-N/2) * sum([l_inv[j] * g[j] for j in range(q)]) + (-N*variance_inv/2) * sum([g[j] for j in range(q, d)])
         for q in range(1, d):
             print('L(' + str(q) + '):', log_likelihood(q))
 

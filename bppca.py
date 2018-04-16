@@ -1,6 +1,7 @@
 import numpy as np
 import scipy
 from sklearn import datasets
+from sklearn import decomposition as dc
 
 '''
 We will (generally) follow three papers in this implementation:
@@ -8,6 +9,16 @@ We will (generally) follow three papers in this implementation:
 2)  Zhang et al. (2004)   [Reversible jump MCMC]
 3)  Bishop et al. (1999b) [Variational inference]
 '''
+
+class PCA(object):
+    def __init__(self):
+        self.p = dc.PCA()
+
+    def fit(self, data):
+        self.p.fit(data)
+
+    def log_likelihood(self, data):
+        return self.p.score(data)
 
 
 class BPPCA(object):
@@ -173,6 +184,111 @@ class BPPCA(object):
         for q in range(1, d):
             print('L(' + str(q) + '):', log_likelihood(q))
 
+    def fit_vb(self, data, n_iter=20):
+        self.p = data.shape[0]
+        self.n = data.shape[1]
+        self.q = 2
+        self.alpha_a = 1.0
+        self.alpha_b = 1.0
+        self.gamma_a = 1.0
+        self.gamma_b = 1.0
+        self.beta = 1.0
+        self.q_dist = Q(self.n, self.p, self.q)
+
+        def update_x():
+            q = self.q_dist
+            gamma_mean = q.gamma_a / q.gamma_b
+            q.x_cov = np.linalg.inv(np.eye(self.q) + gamma_mean * np.transpose(q.w_mean).dot(q.w_mean))
+            q.x_mean = gamma_mean * q.x_cov.dot(np.transpose(q.w_mean)).dot(data - q.mu_mean[:, np.newaxis])
+
+        def update_w():
+            q = self.q_dist
+            # cov
+            x_cov = np.zeros((self.q, self.q))
+            for n in range(self.n):
+                x = q.x_mean[:, n]
+                x_cov += x[:, np.newaxis].dot(np.array([x]))
+            q.w_cov = np.diag(q.alpha_a / q.alpha_b) + q.gamma_mean() * x_cov
+            q.w_cov = np.linalg.inv(q.w_cov)
+            # mean
+            yc = data - q.mu_mean[:, np.newaxis]
+            q.w_mean = q.gamma_mean() * q.w_cov.dot(q.x_mean.dot(np.transpose(yc)))
+            q.w_mean = np.transpose(q.w_mean)
+
+        def update_mu():
+            q = self.q_dist
+            gamma_mean = q.gamma_a / q.gamma_b
+            q.mu_cov = (self.beta + self.n * gamma_mean)**-1 * np.eye(self.p)
+            q.mu_mean = np.sum(data - q.w_mean.dot(q.x_mean), 1)
+            q.mu_mean = gamma_mean * q.mu_cov.dot(q.mu_mean)
+
+        def update_alpha():
+            q = self.q_dist
+            q.alpha_a = self.alpha_a + 0.5 * self.p
+            q.alpha_b = self.alpha_b + 0.5 * np.linalg.norm(q.w_mean, axis=0)**2
+
+        def update_gamma():
+            q = self.q_dist
+            q.gamma_a = self.gamma_a + 0.5 * self.n * self.p
+            q.gamma_b = self.gamma_b
+            w = q.w_mean
+            ww = np.transpose(w).dot(w)
+            for n in range(self.n):
+                y = data[:, n]
+                x = q.x_mean[:, n]
+                q.gamma_b += y.dot(y) + q.mu_mean.dot(q.mu_mean)
+                q.gamma_b += np.trace(ww.dot(x[:, np.newaxis].dot([x])))
+                q.gamma_b += 2.0 * q.mu_mean.dot(w).dot(x[:, np.newaxis])
+                q.gamma_b -= 2.0 * y.dot(w).dot(x)
+                q.gamma_b -= 2.0 * y.dot(q.mu_mean)
+
+        for _ in range(n_iter):
+            update_mu()
+            update_w()
+            update_x()
+            update_alpha()
+            update_gamma()
+
+    def infer(self):
+        q = self.q_dist
+        x = q.x_mean
+        w, mu = q.w_mean, q.mu_mean
+        y = w.dot(x) + mu[:, np.newaxis]
+        return y
+
+    def mse(self, data):
+        d = data - self.infer()
+        d = d.ravel()
+        return self.n**-1 * d.dot(d)
+
+
+
+class Q(object):
+    def __init__(self, n, p, q):
+        self.n = n
+        self.p = p
+        self.q = q
+        self.init()
+
+    def init(self):
+        self.x_mean = np.random.normal(0.0, 1.0, self.q * self.n).reshape(self.q, self.n)
+        self.x_cov = np.eye(self.q)
+        self.w_mean = np.random.normal(0.0, 1.0, self.p * self.q).reshape(self.p, self.q)
+        self.w_cov = np.eye(self.q)
+        self.alpha_a = 1.0
+        self.alpha_b = np.empty(self.q)
+        self.alpha_b.fill(1.0)
+        self.mu_mean = np.random.normal(0.0, 1.0, self.p)
+        self.mu_cov = np.eye(self.p)
+        self.gamma_a = 1.0
+        self.gamma_b = 1.0
+
+    def gamma_mean(self):
+        return self.gamma_a / self.gamma_b
+
+    def alpha_mean(self):
+        return self.alpha_a / self.alpha_b
+
 
 class GaussianDataset(object):
 
@@ -211,12 +327,21 @@ class IrisDataset(object):
 
 
 stdev = [1.0, 1.0, 1.0, 0.1, 0.1, 0.1]
-d = GaussianDataset(stdev, 100)
+d = GaussianDataset(stdev, 10)
+p = PCA()
+p.fit(d.data)
+print(p.log_likelihood(d.data))
+print(p.p.components_)
+print()
 b = BPPCA('gaussian')
-b.fit(d.data, 500)
-print(b.likelihood(d.data))
-print()
-print()
-b = BPPCA('gibbs')
 b.fit(d.data, 50)
-b.likelihood(d.data)
+print(b.likelihood(d.data))
+print(b.W)
+print()
+b = BPPCA('vb')
+b.fit(d.data, 20)
+print(b.mse(d.data))
+print(b.q_dist.w_mean)
+# b = BPPCA('gibbs')
+# b.fit(d.data, 50)
+# b.likelihood(d.data)

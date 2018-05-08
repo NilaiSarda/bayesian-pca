@@ -1,5 +1,5 @@
 import numpy as np
-import scipy
+from matplotlib import pyplot as plt
 from sklearn import datasets
 from sklearn import decomposition as dc
 
@@ -16,15 +16,40 @@ class PCA(object):
 
     def fit(self, data):
         self.p.fit(data)
+        self.w = self.p.fit_transform(data)
 
     def log_likelihood(self, data):
         return self.p.score(data)
+
+    def hinton(self, max_weight=None, ax=None):
+        """Draw Hinton diagram for visualizing a weight matrix."""
+        matrix = self.w
+        ax = ax if ax is not None else plt.gca()
+
+        if not max_weight:
+            max_weight = 2 ** np.ceil(np.log(np.abs(matrix).max()) / np.log(2))
+
+        ax.patch.set_facecolor('gray')
+        ax.set_aspect('equal', 'box')
+        ax.xaxis.set_major_locator(plt.NullLocator())
+        ax.yaxis.set_major_locator(plt.NullLocator())
+
+        for (x, y), w in np.ndenumerate(matrix):
+            color = 'white' if w > 0 else 'black'
+            size = np.sqrt(np.abs(w) / max_weight)
+            rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
+                                 facecolor=color, edgecolor=color)
+            ax.add_patch(rect)
+
+        ax.autoscale_view()
+        ax.invert_yaxis()
 
 
 class BPPCA(object):
 
     def __init__(self, method):
         self.method = method
+        self.q_dist = Q(self.n, self.p, self.q)
 
     def fit(self, data, iterations):
         if self.method == 'gaussian':
@@ -82,14 +107,6 @@ class BPPCA(object):
         q = self.q
         alpha = self.alpha
         print('|W_i|:', [np.linalg.norm(W[:,i]) for i in range(q)])
-        # S = 1.0/N * sum([np.outer(data[i]-mu, data[i]-mu) for i in range(N)])
-        # print('S:', S)
-        # C = np.matmul(W,W.T) + sigma*np.eye(d)
-        # print('C:', C)
-        # L = N/-2 * (d * np.log(2*np.pi) + np.log(np.sum(np.abs(C))) + np.trace(np.matmul(np.linalg.inv(C), S)))
-        # print('L:', N/-2, '*', '(' + str(d * np.log(2*np.pi)), '+', np.log(np.sum(np.abs(C))), '+', str(np.trace(np.matmul(np.linalg.inv(C), S))) + ')')
-        # F = -1.0/2 * sum([alpha[i] * np.linalg.norm(W[:, i])**2 for i in range(q)])
-        # print('F:', F)
         C = np.matmul(W,W.T) + sigma*np.eye(d)
         print('C:', C)
         L = sum([1.0/-2 * (np.matmul(np.matmul((data[i]-mu).T, np.linalg.inv(C)), (data[i]-mu)) + np.log((2*np.pi) ** d * np.linalg.det(C))) for i in range(N)])
@@ -184,7 +201,7 @@ class BPPCA(object):
         for q in range(1, d):
             print('L(' + str(q) + '):', log_likelihood(q))
 
-    def fit_vb(self, data, n_iter=20):
+    def fit_vb(self, data, n_iter=100):
         self.p = data.shape[0]
         self.n = data.shape[1]
         self.q = 2
@@ -193,7 +210,6 @@ class BPPCA(object):
         self.gamma_a = 1.0
         self.gamma_b = 1.0
         self.beta = 1.0
-        self.q_dist = Q(self.n, self.p, self.q)
 
         def update_x():
             q = self.q_dist
@@ -248,6 +264,7 @@ class BPPCA(object):
             update_x()
             update_alpha()
             update_gamma()
+        self.W = np.dot(self.q_dist.w_mean,self.q_dist.x_mean)
 
     def infer(self):
         q = self.q_dist
@@ -256,10 +273,44 @@ class BPPCA(object):
         y = w.dot(x) + mu[:, np.newaxis]
         return y
 
+    def transform(self, y=None):
+        if y is None:
+            return self.q_dist.x_mean
+        q = self.q_dist
+        [w, mu, sigma] = [q.w, q.mu, q.gamma**-1]
+        m = np.transpose(w).dot(w) + sigma * np.eye(w.shape[1])
+        m = np.linalg.inv(m)
+        x = m.dot(np.transpose(w)).dot(y - mu)
+        return x
+
     def mse(self, data):
         d = data - self.infer()
         d = d.ravel()
         return self.n**-1 * d.dot(d)
+
+    def hinton(self, max_weight=None, ax=None):
+        matrix = self.W
+        """Draw Hinton diagram for visualizing a weight matrix."""
+        ax = ax if ax is not None else plt.gca()
+
+        if not max_weight:
+            max_weight = 2 ** np.ceil(np.log(np.abs(matrix).max()) / np.log(2))
+
+        ax.patch.set_facecolor('gray')
+        ax.set_aspect('equal', 'box')
+        ax.xaxis.set_major_locator(plt.NullLocator())
+        ax.yaxis.set_major_locator(plt.NullLocator())
+
+        for (x, y), w in np.ndenumerate(matrix):
+            color = 'white' if w > 0 else 'black'
+            size = np.sqrt(np.abs(w) / max_weight)
+            rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
+                                 facecolor=color, edgecolor=color)
+            ax.add_patch(rect)
+
+        ax.autoscale_view()
+        ax.invert_yaxis()
+
 
 
 
@@ -326,22 +377,28 @@ class IrisDataset(object):
         return self._shape
 
 
-stdev = [1.0, 1.0, 1.0, 0.1, 0.1, 0.1]
-d = GaussianDataset(stdev, 10)
-p = PCA()
-p.fit(d.data)
-print(p.log_likelihood(d.data))
-print(p.p.components_)
-print()
-b = BPPCA('gaussian')
-b.fit(d.data, 50)
-print(b.likelihood(d.data))
-print(b.W)
-print()
-b = BPPCA('vb')
-b.fit(d.data, 20)
-print(b.mse(d.data))
-print(b.q_dist.w_mean)
+# stdev = [1.0, 1.0, 1.0, 0.1, 0.1, 0.1]
+# d = GaussianDataset(stdev, 10)
+# p = PCA()
+# p.fit(d.data)
+# print(p.log_likelihood(d.data))
+# print(p.p.components_)
+# print()
+# p.hinton()
+# plt.show()
+# b = BPPCA('gaussian')
+# b.fit(d.data, 50)
+# print(b.likelihood(d.data))
+# print(b.W)
+# print()
+# b.hinton()
+# plt.show()
+# b = BPPCA('vb')
+# b.fit(d.data, 20)
+# print(b.mse(d.data))
+# print(b.q_dist.w_mean)
+# b.hinton()
+# plt.show()
 # b = BPPCA('gibbs')
 # b.fit(d.data, 50)
 # b.likelihood(d.data)

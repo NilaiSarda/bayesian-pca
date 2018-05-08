@@ -3,8 +3,9 @@ import matplotlib.cm as plt_cm
 import matplotlib.colors as plt_col
 import sklearn.datasets as ds
 import numpy as np
-from vbpca import VBPCA as vb
-from lbpca import LBPCA as lb
+from vbpca import VBPCA
+from lbpca import LBPCA
+from pca import PCA
 
 
 def plot_scatter(x, classes, ax=None):
@@ -23,7 +24,7 @@ def plot_grid(n, ncols=4, size=(5, 5)):
 
 def plot_bppca(y, y_classes, maxit=7, *args, **kwargs):
     np.random.seed(0)
-    bppca = vb(y, *args, **kwargs)
+    bppca = VBPCA(y, *args, **kwargs)
     fig, ax = plot_grid(maxit + 1)
     plot_scatter(bppca.transform(), y_classes, ax[0])
     for i in range(maxit):
@@ -75,20 +76,34 @@ class GaussianDataset(object):
     def shape(self):
         return self._shape
 
-# iris = ds.load_iris()
-# iris_y = np.transpose(iris.data)
-# iris_classes = iris.target
+class IrisDataset(object):
 
-# vbpca = plot_bppca(iris_y, iris_classes)
-# plt.show()
+    def __init__(self):
+        iris = ds.load_iris()
+        self._data = iris.data
+        self._shape = iris.data.shape
 
-stdev = [1.0, 1.0, 1.0, 0.01, 0.01, 0.01]
-d = GaussianDataset(stdev, 10)
-vbpca = vb(np.transpose(d.data))
-lbpca = lb(d.data)
-output = vbpca.fit_transform()
-hinton(np.transpose(output))
-plt.show()
-output = lbpca.fit_transform()
-hinton(output)
-plt.show()
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def shape(self):
+        return self._shape
+
+
+if __name__ == '__main__':
+    stdev = [1.0, 1.0, 1.0, 0.01, 0.01, 0.01]
+    d = GaussianDataset(stdev, 10)
+    vbpca = VBPCA(np.transpose(d.data))
+    lbpca = LBPCA(d.data)
+    pca = PCA(d.data)
+    output = vbpca.fit_transform()
+    hinton(np.transpose(output))
+    plt.show()
+    output = lbpca.fit_transform()
+    hinton(output)
+    plt.show()
+    output = pca.fit_transform()
+    hinton(output)
+    plt.show()

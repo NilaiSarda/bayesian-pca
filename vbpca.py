@@ -7,7 +7,7 @@ class VBPCA(object):
     def __init__(self, y, hyper=None):
         self.y = y
         self.p = y.shape[0]
-        self.q = self.p-1
+        self.q = self.p
         self.n = y.shape[1]
         if hyper is None:
             self.hyper = HyperParameters()

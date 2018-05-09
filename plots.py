@@ -92,18 +92,21 @@ class IrisDataset(object):
         return self._shape
 
 
-if __name__ == '__main__':
-    stdev = [1.0, 1.0, 1.0, 0.01, 0.01, 0.01]
-    d = GaussianDataset(stdev, 10)
+def show_hinton_weights(d):
     vbpca = VBPCA(np.transpose(d.data))
     lbpca = LBPCA(d.data)
     pca = PCA(d.data)
-    output = vbpca.fit_transform()
-    hinton(np.transpose(output))
+    lbpca.fit(d.data)
+    weight = lbpca.W
+    hinton(weight)
     plt.show()
-    output = lbpca.fit_transform()
-    hinton(output)
+    weight = pca.fit_transform()
+    pcs = pca.params
+    hinton(pcs[:,:d.data.shape[1]-1])
     plt.show()
-    output = pca.fit_transform()
-    hinton(output)
-    plt.show()
+
+
+if __name__ == '__main__':
+    stdev = [1.0, 1.0, 1.0, 0.01, 0.01, 0.01]
+    d = GaussianDataset(stdev, 10)
+    show_hinton_weights(d)

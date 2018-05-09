@@ -6,7 +6,7 @@ class LBPCA(object):
         self.y = y
         self.N = self.y.shape[0]
         self.d = self.y.shape[1]
-        self.q = self.d
+        self.q = self.d - 1
 
     def fit(self, data, iterations=50):
         N, d, q = self.N, self.d, self.q

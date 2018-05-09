@@ -4,7 +4,7 @@ import matplotlib.colors as plt_col
 import sklearn.datasets as ds
 import numpy as np
 from vbpca import VBPCA
-from lbpca import LBPCA
+from lbpca import LBPCA, Node, Coordinator
 from pca import PCA
 
 
@@ -33,6 +33,16 @@ def plot_bppca(y, y_classes, maxit=7, *args, **kwargs):
         plot_scatter(bppca.transform(), y_classes, ax[j])
         ax[j].set_title('Iteration {}'.format(j))
     return bppca
+
+def create_distributed(data, M):
+    size = int(data.shape[0]/M)
+    map_ = {}
+    for i in range(M):
+        node = Node(data.data[i*size:(i+1)*size])
+        map_[node] = None
+    coord = Coordinator(data, map_)
+    return coord
+
 
 def hinton(W, max_weight=None, ax=None):
     matrix = W
@@ -96,17 +106,26 @@ def show_hinton_weights(d):
     vbpca = VBPCA(np.transpose(d.data))
     lbpca = LBPCA(d.data)
     pca = PCA(d.data)
-    lbpca.fit(d.data)
-    weight = lbpca.W
+    coord = create_distributed(d, 10)
+    # lbpca.fit(d.data)
+    # weight = lbpca.W
+    # hinton(weight)
+    # plt.show()
+    # weight = pca.fit_transform()
+    # pcs = pca.params
+    # hinton(pcs[:,:d.data.shape[1]-1])
+    # plt.show()
+    coord.randomized_fit()
+    weight = coord.W
     hinton(weight)
     plt.show()
-    weight = pca.fit_transform()
-    pcs = pca.params
-    hinton(pcs[:,:d.data.shape[1]-1])
+    coord.cyclic_fit()
+    weight = coord.W
+    hinton(weight)
     plt.show()
 
 
 if __name__ == '__main__':
     stdev = [1.0, 1.0, 1.0, 0.01, 0.01, 0.01]
-    d = GaussianDataset(stdev, 10)
+    d = GaussianDataset(stdev, 100)
     show_hinton_weights(d)

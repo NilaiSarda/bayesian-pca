@@ -79,19 +79,23 @@ class Coordinator(object):
         self.nodes = nodes
 
     def randomized_fit(self, iterations=50):
+        nodes = list(self.nodes)
         for _ in range(iterations):
-            nodes = list(self.nodes)
-            np.random.shuffle(nodes)
+            np.random.shuffle(nodes[1:-1])
             for i in range(len(nodes)-1):
                 nodes[i].fit()
                 self.W = nodes[i].forward(nodes[i+1])
+            nodes[-1].fit()
+            self.W = nodes[-1].forward(nodes[0])
 
-    def cyclic_fit(self, iterations=50):
+    def cyclic_fit(self, iterations=1):
         nodes = list(self.nodes)
         for _ in range(iterations):
             for i in range(len(nodes)-1):
                 nodes[i].fit()
                 self.W = nodes[i].forward(nodes[i+1])
+            nodes[-1].fit()
+            self.W = nodes[-1].forward(nodes[0])
 
     def robust_fit(self, iterations=100):
         nodes = list(self.dict.keys())

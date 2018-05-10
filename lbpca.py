@@ -6,7 +6,7 @@ class LBPCA(object):
         self.data = data
         self.N = self.data.shape[0]
         self.d = self.data.shape[1]
-        self.q = self.d - 1
+        self.q = 2
         self.mu = np.mean(self.data, axis=0)
         self.W = np.random.randn(self.d, self.q)
         self.sigma = 0
@@ -133,3 +133,6 @@ class Coordinator(object):
                         worker.update()
                         worker.add(leader)
         self.W = leader.W
+
+    def transform(self, y):
+        return np.dot(y,self.W)

@@ -16,23 +16,42 @@ def plot_scatter(x, classes, ax=None):
     colors = mapper.to_rgba(classes)
     ax.scatter(x[0, :], x[1, :], color=colors, s=20)
 
-def plot_grid(n, ncols=4, size=(5, 5)):
+def plot_grid(n, ncols=5, size=(3, 3)):
     nrows = int(np.ceil(n/float(ncols)))
     fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=(size[0]*ncols, size[1]*nrows))
     ax = ax.ravel()
     return [fig, ax]
 
-def plot_bppca(y, y_classes, maxit=7, *args, **kwargs):
+def plot_bppca(y, y_classes, maxit=10, *args, **kwargs):
     np.random.seed(0)
-    bppca = VBPCA(y, *args, **kwargs)
-    fig, ax = plot_grid(maxit + 1)
-    plot_scatter(bppca.transform(), y_classes, ax[0])
+    fig, ax = plot_grid(5)
+    #PCA
+    pca = PCA(y.T)
+    print(pca.fit_transform())
+    plot_scatter(pca.fit_transform().T, y_classes, ax[4])
+    ax[4].set_title('Standard PCA')
+    #Variational bayes
+    vbpca = VBPCA(y, *args, **kwargs)
     for i in range(maxit):
-        bppca.update()
-        j = i + 1
-        plot_scatter(bppca.transform(), y_classes, ax[j])
-        ax[j].set_title('Iteration {}'.format(j))
-    return bppca
+        vbpca.update()
+    plot_scatter(vbpca.transform(), y_classes, ax[0])
+    ax[0].set_title('Variational bayes PCA')
+    #Laplace approximation
+    lbpca = LBPCA(y.T)
+    lbpca.fit(maxit)
+    plot_scatter(lbpca.transform().T, y_classes, ax[1])
+    ax[1].set_title('Laplace approximation PCA')
+    #Streaming LBPCA
+    stream = create_distributed(y.T, 10)
+    stream.randomized_fit(maxit)
+    plot_scatter(stream.transform(y.T).T, y_classes, ax[2])
+    ax[2].set_title('Streaming LBPCA')
+    #Distributed LBPCA
+    stream = create_distributed(y.T, 10)
+    stream.averaged_fit(maxit)
+    plot_scatter(stream.transform(y.T).T, y_classes, ax[3])
+    ax[3].set_title('Distributed PCA')
+    plt.show()
 
 def create_distributed(data, M):
     size = int(data.shape[0]/M)
@@ -88,6 +107,7 @@ class IrisDataset(object):
         iris = ds.load_iris()
         self._data = iris.data
         self._shape = iris.data.shape
+        self._targets = iris.target
 
     @property
     def data(self):
@@ -96,6 +116,10 @@ class IrisDataset(object):
     @property
     def shape(self):
         return self._shape
+
+    @property
+    def targets(self):
+        return self._targets
 
 def show_hinton_weights(data):
     np.set_printoptions(precision=3)
@@ -140,8 +164,7 @@ def show_hinton_weights(data):
     plt.show()
 
 if __name__ == '__main__':
-    stdev = [2, 2, 2, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
-    d = GaussianDataset(stdev, 300)
-    show_hinton_weights(np.matmul(d.data, ortho_group.rvs(dim=10)))
-    # d = IrisDataset()
-    # show_hinton_weights(d.data)
+    stdev = [5, 4, 3, 2, 1, 1, 1, 1, 1, 1]
+    i = IrisDataset()
+    print(i.data)
+    plot_bppca(i.data.T, i.targets)

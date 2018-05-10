@@ -91,12 +91,15 @@ class Node(object):
             W = np.matmul(sum([np.matmul((data[i]-mu).reshape(-1,1), x[i].T) for i in range(N)]), np.linalg.inv(sum(xx)+sigma*A))
             sigma = (1.0/(N*d)) * sum([np.linalg.norm(data[i]-mu)**2 - np.matmul(2*np.matmul(x[i].T,W.T),data[i]-mu) + np.trace(np.matmul(xx[i], np.matmul(W.T, W))) for i in range(N)])
             M = np.matmul(W.T, W) + sigma * np.eye(q)
+            for i in range(N):
+                x[i] = np.matmul(np.matmul(np.linalg.inv(M), W.T), data[i]-mu).reshape(-1,1)
+                xx[i] = (sigma*M + np.matmul(x[i], x[i].T))
             for i in range(q):
                 alpha[i] = d / (np.linalg.norm(W[:,i])+0.0001)
             A = np.diag(alpha)
-            W = np.matmul(sum([np.matmul((data[i]-mu).reshape(-1,1), x[i].T) for i in range(N)]), np.linalg.inv(sum(xx)+sigma*A))
-            sigma = (1.0/(N*d)) * sum([np.linalg.norm(data[i]-mu)**2 - np.matmul(2*np.matmul(x[i].T,W.T),data[i]-mu) + np.trace(np.matmul(xx[i], np.matmul(W.T, W))) for i in range(N)])
-            M = np.matmul(W.T, W) + sigma * np.eye(q)
+            # W = np.matmul(sum([np.matmul((data[i]-mu).reshape(-1,1), x[i].T) for i in range(N)]), np.linalg.inv(sum(xx)+sigma*A))
+            # sigma = (1.0/(N*d)) * sum([np.linalg.norm(data[i]-mu)**2 - np.matmul(2*np.matmul(x[i].T,W.T),data[i]-mu) + np.trace(np.matmul(xx[i], np.matmul(W.T, W))) for i in range(N)])
+            # M = np.matmul(W.T, W) + sigma * np.eye(q)
         self.W = W
         self.sigma = sigma
         self.alpha = alpha
@@ -106,8 +109,10 @@ class Node(object):
         self.q = q
 
     def forward(self, other):
-        other.sigma, other.W, other.alpha = self.sigma, self.W, self.alpha
-        return self.W
+        other.sigma = self.sigma
+        other.W = self.W
+        other.alpha = self.alpha
+        return other.W
 
     def gaussian_likelihood(self, data):
         mu = self.mu

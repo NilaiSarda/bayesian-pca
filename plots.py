@@ -36,6 +36,7 @@ def plot_bppca(y, y_classes, maxit=7, *args, **kwargs):
 
 def create_distributed(data, M):
     size = int(data.shape[0]/M)
+    print(size)
     map_ = {}
     for i in range(M):
         node = Node(data.data[i*size:(i+1)*size])
@@ -107,18 +108,18 @@ def show_hinton_weights(d):
     lbpca = LBPCA(d.data)
     pca = PCA(d.data)
     coord = create_distributed(d, 10)
-    # lbpca.fit(d.data)
-    # weight = lbpca.W
-    # hinton(weight)
-    # plt.show()
-    # weight = pca.fit_transform()
-    # pcs = pca.params
-    # hinton(pcs[:,:d.data.shape[1]-1])
-    # plt.show()
-    coord.randomized_fit()
-    weight = coord.W
+    lbpca.fit(d.data)
+    weight = lbpca.W
     hinton(weight)
     plt.show()
+    weight = pca.fit_transform()
+    pcs = pca.params
+    hinton(pcs[:,:d.data.shape[1]-1])
+    plt.show()
+    # coord.randomized_fit()
+    # weight = coord.W
+    # hinton(weight)
+    # plt.show()
     coord.cyclic_fit()
     weight = coord.W
     hinton(weight)

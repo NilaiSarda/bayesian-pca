@@ -4,9 +4,8 @@ import matplotlib.colors as plt_col
 import sklearn.datasets as ds
 import numpy as np
 from vbpca import VBPCA
-from lbpca import LBPCA, Node, Coordinator
+from lbpca import LBPCA, Coordinator
 from pca import PCA
-
 
 def plot_scatter(x, classes, ax=None):
     ax = plt.gca() if ax is None else ax
@@ -36,35 +35,30 @@ def plot_bppca(y, y_classes, maxit=7, *args, **kwargs):
 
 def create_distributed(data, M):
     size = int(data.shape[0]/M)
-    print(size)
-    map_ = {}
+    print('batch size:', size)
+    nodes = []
     for i in range(M):
-        node = Node(data.data[i*size:(i+1)*size])
-        map_[node] = None
-    coord = Coordinator(data, map_)
+        node = LBPCA(data[i*size:(i+1)*size])
+        nodes.append(node)
+    coord = Coordinator(nodes)
     return coord
 
-
 def hinton(W, max_weight=None, ax=None):
-    matrix = W
     """Draw Hinton diagram for visualizing a weight matrix."""
+    matrix = W
     ax = ax if ax is not None else plt.gca()
-
     if not max_weight:
         max_weight = 2 ** np.ceil(np.log(np.abs(matrix).max()) / np.log(2))
-
     ax.patch.set_facecolor('gray')
     ax.set_aspect('equal', 'box')
     ax.xaxis.set_major_locator(plt.NullLocator())
     ax.yaxis.set_major_locator(plt.NullLocator())
-
     for (x, y), w in np.ndenumerate(matrix):
         color = 'white' if w > 0 else 'black'
         size = np.sqrt(np.abs(w) / max_weight)
         rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
                              facecolor=color, edgecolor=color)
         ax.add_patch(rect)
-
     ax.autoscale_view()
     ax.invert_yaxis()
 
@@ -102,31 +96,41 @@ class IrisDataset(object):
     def shape(self):
         return self._shape
 
-
-def show_hinton_weights(d):
-    vbpca = VBPCA(np.transpose(d.data))
-    lbpca = LBPCA(d.data)
-    pca = PCA(d.data)
-    coord = create_distributed(d, 10)
-    lbpca.fit(d.data)
+def show_hinton_weights(data):
+    lbpca = LBPCA(data)
+    pca = PCA(data)
+    vbpca = VBPCA(np.transpose(data))
+    coord = create_distributed(data, 10)
+    # LBPCA
+    lbpca.fit_transform()
     weight = lbpca.W
     hinton(weight)
+    figure = plt.gcf()
+    figure.canvas.set_window_title('LBPCA')
     plt.show()
+    # PCA
     weight = pca.fit_transform()
     pcs = pca.params
-    hinton(pcs[:,:d.data.shape[1]-1])
+    hinton(pcs[:,:data.shape[1]-1])
+    figure = plt.gcf()
+    figure.canvas.set_window_title('PCA')
     plt.show()
+    # Distributed LBPCA (randomized ordering)
     # coord.randomized_fit()
     # weight = coord.W
     # hinton(weight)
+    # figure = plt.gcf()
+    # figure.canvas.set_window_title('Distributed LBPCA (randomized ordering)')
     # plt.show()
+    # Distributed LBPCA (cyclic ordering)
     coord.cyclic_fit()
     weight = coord.W
     hinton(weight)
+    figure = plt.gcf()
+    figure.canvas.set_window_title('Distributed LBPCA (cyclic ordering)')
     plt.show()
-
 
 if __name__ == '__main__':
     stdev = [1.0, 1.0, 1.0, 0.01, 0.01, 0.01]
     d = GaussianDataset(stdev, 100)
-    show_hinton_weights(d)
+    show_hinton_weights(d.data)

@@ -88,7 +88,7 @@ class Coordinator(object):
             nodes[-1].fit()
             self.W = nodes[-1].forward(nodes[0])
 
-    def cyclic_fit(self, iterations=1):
+    def cyclic_fit(self, iterations=50):
         nodes = list(self.nodes)
         for _ in range(iterations):
             for i in range(len(nodes)-1):

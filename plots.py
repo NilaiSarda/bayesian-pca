@@ -112,13 +112,13 @@ def show_hinton_weights(data):
     # PCA
     weight = pca.fit_transform()
     pcs = pca.params
-    hinton(pcs[:,:data.shape[1]-1])
+    hinton(pcs[:-1,:].T)
     figure = plt.gcf()
     figure.canvas.set_window_title('PCA')
     plt.title('PCA Hinton Diagram')
     plt.show()
     # Distributed LBPCA (randomized ordering)
-    iterations = 1000
+    iterations = 1
     coord = create_distributed(data, 10)
     coord.randomized_fit(iterations)
     weight = coord.W
@@ -128,7 +128,7 @@ def show_hinton_weights(data):
     plt.title('Distributed LBPCA (Randomized Ordering) Hinton Diagram')
     plt.show()
     # Distributed LBPCA (cyclic ordering)
-    iterations = 50
+    iterations = 1
     coord = create_distributed(data, 10)
     coord.cyclic_fit(iterations)
     weight = coord.W

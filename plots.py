@@ -128,18 +128,20 @@ def show_hinton_weights(data):
     figure.canvas.set_window_title('Streaming LBPCA')
     plt.title('Streaming LBPCA')
     plt.show()
-    # Distributed LBPCA (averaged updates)
+    # Distributed LBPCA
     iterations = 50
     coord = create_distributed(data, 10)
     coord.averaged_fit(iterations)
     weight = coord.W
     hinton(weight)
     figure = plt.gcf()
-    figure.canvas.set_window_title('Distributed LBPCA (Averaged Updates), iterations=' + str(iterations))
-    plt.title('Distributed LBPCA (Averaged Updates)')
+    figure.canvas.set_window_title('Distributed LBPCA, iterations=' + str(iterations))
+    plt.title('Distributed LBPCA')
     plt.show()
 
 if __name__ == '__main__':
     stdev = [2, 2, 2, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
     d = GaussianDataset(stdev, 300)
     show_hinton_weights(np.matmul(d.data, ortho_group.rvs(dim=10)))
+    # d = IrisDataset()
+    # show_hinton_weights(d.data)

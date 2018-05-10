@@ -6,6 +6,7 @@ import numpy as np
 from vbpca import VBPCA
 from lbpca import LBPCA, Coordinator
 from pca import PCA
+from scipy.stats import ortho_group
 
 def plot_scatter(x, classes, ax=None):
     ax = plt.gca() if ax is None else ax
@@ -45,7 +46,7 @@ def create_distributed(data, M):
 
 def hinton(W, max_weight=None, ax=None):
     """Draw Hinton diagram for visualizing a weight matrix."""
-    matrix = W
+    matrix = W.T
     ax = ax if ax is not None else plt.gca()
     if not max_weight:
         max_weight = 2 ** np.ceil(np.log(np.abs(matrix).max()) / np.log(2))
@@ -112,7 +113,7 @@ def show_hinton_weights(data):
     # PCA
     weight = pca.fit_transform()
     pcs = pca.params
-    hinton(pcs[:-1,:].T)
+    hinton(pcs[:,:-1])
     figure = plt.gcf()
     figure.canvas.set_window_title('PCA')
     plt.title('PCA Hinton Diagram')
@@ -150,4 +151,4 @@ def show_hinton_weights(data):
 if __name__ == '__main__':
     stdev = [5, 4, 3, 2, 1, 1, 1, 1, 1, 1]
     d = GaussianDataset(stdev, 100)
-    show_hinton_weights(d.data)
+    show_hinton_weights(np.matmul(d.data, ortho_group.rvs(dim=10)))

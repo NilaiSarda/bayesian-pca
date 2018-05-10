@@ -40,7 +40,7 @@ def create_distributed(data, M):
     for i in range(M):
         node = LBPCA(data[i*size:(i+1)*size])
         nodes.append(node)
-    coord = Coordinator(nodes)
+    coord = Coordinator(data, M, nodes)
     return coord
 
 def hinton(W, max_weight=None, ax=None):
@@ -69,7 +69,7 @@ class GaussianDataset(object):
         data = np.zeros((N, d))
         for i in range(N):
             for j in range(d):
-                data[i, j] = np.random.normal(1, stdev[j])
+                data[i, j] = np.random.normal(0, stdev[j])
         self._data = data
         self._shape = (N, d)
 
@@ -97,9 +97,9 @@ class IrisDataset(object):
         return self._shape
 
 def show_hinton_weights(data):
+    np.set_printoptions(precision=3)
     lbpca = LBPCA(data)
     pca = PCA(data)
-    vbpca = VBPCA(np.transpose(data))
     # LBPCA
     iterations = 50
     lbpca.fit_transform(iterations)
@@ -117,7 +117,7 @@ def show_hinton_weights(data):
     figure.canvas.set_window_title('PCA')
     plt.title('PCA Hinton Diagram')
     plt.show()
-    # Distributed LBPCA (randomized ordering)
+    # Distributed LBPCA (randomized nodes)
     iterations = 1
     coord = create_distributed(data, 10)
     coord.randomized_fit(iterations)
@@ -128,7 +128,6 @@ def show_hinton_weights(data):
     plt.title('Distributed LBPCA (Randomized Ordering) Hinton Diagram')
     plt.show()
     # Distributed LBPCA (cyclic ordering)
-    iterations = 1
     coord = create_distributed(data, 10)
     coord.cyclic_fit(iterations)
     weight = coord.W
@@ -136,6 +135,16 @@ def show_hinton_weights(data):
     figure = plt.gcf()
     figure.canvas.set_window_title('Distributed LBPCA (Cyclic), iterations=' + str(iterations))
     plt.title('Distributed LBPCA (Cyclic Ordering) Hinton Diagram')
+    plt.show()
+    # Distributed LBPCA (averaged updates)
+    iterations = 50
+    coord = create_distributed(data, 10)
+    coord.averaged_fit(iterations)
+    weight = coord.W
+    hinton(weight)
+    figure = plt.gcf()
+    figure.canvas.set_window_title('Distributed LBPCA (Averaged), iterations=' + str(iterations))
+    plt.title('Distributed LBPCA (Averaged Updates) Hinton Diagram')
     plt.show()
 
 if __name__ == '__main__':

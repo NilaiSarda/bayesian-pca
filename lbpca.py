@@ -7,7 +7,7 @@ class LBPCA(object):
         self.N = self.data.shape[0]
         self.d = self.data.shape[1]
         self.q = self.d - 1
-        self.mu = np.mean(self.data.data, axis=0)
+        self.mu = np.mean(self.data, axis=0)
         self.W = np.random.normal(0,1,size=(self.d, self.q))
         self.sigma = 0.1
         self.alpha = np.random.randn(self.q)
@@ -57,10 +57,6 @@ class LBPCA(object):
         other.sigma += self.sigma
         other.W += self.W
         other.alpha += self.alpha
-        other.sigma /= 2
-        other.W /= 2
-        other.alpha /= 2
-        return other.W
 
     def gaussian_likelihood(self):
         data = self.data
@@ -75,25 +71,49 @@ class LBPCA(object):
 
 class Coordinator(object):
 
-    def __init__(self, nodes):
+    def __init__(self, data, M, nodes):
+        self.data = data
+        self.M = M
         self.nodes = nodes
 
     def randomized_fit(self, iterations=50):
-        nodes = list(self.nodes)
+        data, M = self.data, self.M
+        size = int(data.shape[0]/M)
+        passer = LBPCA(data)
         for _ in range(iterations):
-            np.random.shuffle(nodes[1:-1])
-            for i in range(len(nodes)-1):
-                nodes[i].fit()
-                self.W = nodes[i].forward(nodes[i+1])
-            nodes[-1].fit()
-            self.W = nodes[-1].forward(nodes[0])
+            np.random.shuffle(data)
+            for i in range(M):
+                node = LBPCA(data[i*size:(i+1)*size])
+                passer.forward(node)
+                node.fit()
+                self.W = node.forward(passer)
+
+    def averaged_fit(self, iterations=50):
+        data, M = self.data, self.M
+        size = int(data.shape[0]/M)
+        passer = LBPCA(data)
+        accumulator = LBPCA(data)
+        for _ in range(iterations):
+            accumulator.W = np.zeros((accumulator.d, accumulator.q))
+            accumulator.sigma = 0
+            accumulator.alpha = np.zeros(accumulator.q)
+            np.random.shuffle(data)
+            for i in range(M):
+                node = LBPCA(data[i*size:(i+1)*size])
+                passer.forward(node)
+                node.fit()
+                node.add(accumulator)
+            accumulator.W /= M
+            accumulator.sigma /= M
+            accumulator.alpha /= M
+            self.W = accumulator.forward(passer)
 
     def cyclic_fit(self, iterations=50):
         nodes = list(self.nodes)
         for _ in range(iterations):
             for i in range(len(nodes)-1):
                 nodes[i].fit()
-                self.W = nodes[i].forward(nodes[i+1])
+                nodes[i].forward(nodes[i+1])
             nodes[-1].fit()
             self.W = nodes[-1].forward(nodes[0])
 

@@ -34,4 +34,4 @@ class PCA(object):
 
     @property
     def params(self):
-        return self.p.components_
+        return self.p.components_.T * np.sqrt(self.p.explained_variance_)

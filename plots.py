@@ -148,6 +148,6 @@ def show_hinton_weights(data):
     plt.show()
 
 if __name__ == '__main__':
-    stdev = [1.0, 1.0, 1.0, 0.01, 0.01, 0.01]
+    stdev = [5, 4, 3, 2, 1, 1, 1, 1, 1, 1]
     d = GaussianDataset(stdev, 100)
     show_hinton_weights(d.data)

@@ -8,9 +8,11 @@ class LBPCA(object):
         self.d = self.data.shape[1]
         self.q = self.d - 1
         self.mu = np.mean(self.data, axis=0)
-        self.W = np.random.normal(0,1,size=(self.d, self.q))
-        self.sigma = 0.1
+        self.W = np.random.randn(self.d, self.q)
+        self.sigma = 0
         self.alpha = np.random.randn(self.q)
+        for i in range(self.q):
+            self.alpha[i] = self.d / (np.linalg.norm(self.W[:,i])**2)
 
     def fit(self, iterations=1):
         data = self.data
@@ -27,7 +29,7 @@ class LBPCA(object):
             # update W, sigma
             A = np.diag(alpha)
             W = np.matmul(sum([np.matmul((data[i]-mu).reshape(-1,1), x[i].T) for i in range(N)]), np.linalg.inv(sum(xx)+sigma*A))
-            sigma = (1.0/(N*d)) * sum([np.linalg.norm(data[i]-mu)**2 - np.matmul(2*np.matmul(x[i].T,W.T),data[i]-mu) + np.trace(np.matmul(xx[i], np.matmul(W.T, W))) for i in range(N)])
+            sigma = (1.0/(N*d)) * sum([np.linalg.norm(data[i]-mu)**2 - 2*np.matmul(np.matmul(x[i].T,W.T),data[i]-mu) + np.trace(np.matmul(xx[i], np.matmul(W.T, W))) for i in range(N)])
             M = np.matmul(W.T, W) + sigma * np.eye(q)
             # update the moments of x_n
             for i in range(N):
@@ -35,7 +37,7 @@ class LBPCA(object):
                 xx[i] = (sigma*M + np.matmul(x[i], x[i].T))
             # update alpha
             for i in range(q):
-                alpha[i] = d / (np.linalg.norm(W[:,i])+0.0001)
+                alpha[i] = d / (np.linalg.norm(W[:,i])**2+0.000001)
         self.W = W
         self.sigma = sigma
         self.alpha = alpha

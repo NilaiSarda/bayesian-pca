@@ -108,7 +108,7 @@ def show_hinton_weights(data):
     hinton(weight)
     figure = plt.gcf()
     figure.canvas.set_window_title('LBPCA, iterations=' + str(iterations))
-    plt.title('LBPCA Hinton Diagram')
+    plt.title('LBPCA')
     plt.show()
     # PCA
     weight = pca.fit_transform()
@@ -116,26 +116,17 @@ def show_hinton_weights(data):
     hinton(pcs[:,:-1])
     figure = plt.gcf()
     figure.canvas.set_window_title('PCA')
-    plt.title('PCA Hinton Diagram')
+    plt.title('PCA')
     plt.show()
-    # Distributed LBPCA (randomized nodes)
+    # Streaming LBPCA
     iterations = 1
     coord = create_distributed(data, 10)
     coord.randomized_fit(iterations)
     weight = coord.W
     hinton(weight)
     figure = plt.gcf()
-    figure.canvas.set_window_title('Distributed LBPCA (Random), iterations=' + str(iterations))
-    plt.title('Distributed LBPCA (Randomized Ordering) Hinton Diagram')
-    plt.show()
-    # Distributed LBPCA (cyclic ordering)
-    coord = create_distributed(data, 10)
-    coord.cyclic_fit(iterations)
-    weight = coord.W
-    hinton(weight)
-    figure = plt.gcf()
-    figure.canvas.set_window_title('Distributed LBPCA (Cyclic), iterations=' + str(iterations))
-    plt.title('Distributed LBPCA (Cyclic Ordering) Hinton Diagram')
+    figure.canvas.set_window_title('Streaming LBPCA')
+    plt.title('Streaming LBPCA')
     plt.show()
     # Distributed LBPCA (averaged updates)
     iterations = 50
@@ -144,11 +135,11 @@ def show_hinton_weights(data):
     weight = coord.W
     hinton(weight)
     figure = plt.gcf()
-    figure.canvas.set_window_title('Distributed LBPCA (Averaged), iterations=' + str(iterations))
-    plt.title('Distributed LBPCA (Averaged Updates) Hinton Diagram')
+    figure.canvas.set_window_title('Distributed LBPCA (Averaged Updates), iterations=' + str(iterations))
+    plt.title('Distributed LBPCA (Averaged Updates)')
     plt.show()
 
 if __name__ == '__main__':
-    stdev = [5, 4, 3, 2, 1, 1, 1, 1, 1, 1]
-    d = GaussianDataset(stdev, 100)
+    stdev = [2, 2, 2, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+    d = GaussianDataset(stdev, 300)
     show_hinton_weights(np.matmul(d.data, ortho_group.rvs(dim=10)))

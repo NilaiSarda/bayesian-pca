@@ -53,6 +53,15 @@ class LBPCA(object):
         self.fit(iterations)
         return np.dot(self.data, self.W)
 
+    def add(self, other):
+        other.sigma += self.sigma
+        other.W += self.W
+        other.alpha += self.alpha
+        other.sigma /= 2
+        other.W /= 2
+        other.alpha /= 2
+        return other.W
+
     def gaussian_likelihood(self):
         data = self.data
         N, d, q = self.N, self.d, self.q
@@ -84,8 +93,17 @@ class Coordinator(object):
                 nodes[i].fit()
                 self.W = nodes[i].forward(nodes[i+1])
 
-    # def centralized_fit(self, iterations=100):
-        # nodes = list(self.nodes)
-        # for _ in range(iterations):
-            # np.random.shuffle(nodes)
-            # for i in range(len(nodes)-1):
+    def robust_fit(self, iterations=100):
+        nodes = list(self.dict.keys())
+        for _ in range(iterations):
+            for i in range(len(nodes)-1):
+                leader = nodes[i]
+                leader.update()
+                delta = np.zeros((leader.d, leader.q))
+                for j in range(len(nodes)-1):
+                    if j != i:
+                        worker = nodes[j]
+                        leader.forward(worker)
+                        worker.update()
+                        worker.add(leader)
+        self.W = leader.W

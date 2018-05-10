@@ -49,8 +49,8 @@ class LBPCA(object):
     def transform(self):
         return np.dot(self.data, self.W)
 
-    def fit_transform(self):
-        self.fit(iterations=50)
+    def fit_transform(self, iterations=50):
+        self.fit(iterations)
         return np.dot(self.data, self.W)
 
     def gaussian_likelihood(self):
@@ -69,15 +69,15 @@ class Coordinator(object):
     def __init__(self, nodes):
         self.nodes = nodes
 
-    def randomized_fit(self, iterations=1000):
-        nodes = list(self.nodes)
+    def randomized_fit(self, iterations=50):
         for _ in range(iterations):
+            nodes = list(self.nodes)
             np.random.shuffle(nodes)
             for i in range(len(nodes)-1):
                 nodes[i].fit()
                 self.W = nodes[i].forward(nodes[i+1])
 
-    def cyclic_fit(self, iterations=1000):
+    def cyclic_fit(self, iterations=50):
         nodes = list(self.nodes)
         for _ in range(iterations):
             for i in range(len(nodes)-1):

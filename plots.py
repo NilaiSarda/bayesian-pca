@@ -35,7 +35,7 @@ def plot_bppca(y, y_classes, maxit=7, *args, **kwargs):
 
 def create_distributed(data, M):
     size = int(data.shape[0]/M)
-    print('batch size:', size)
+    # print('batch size:', size)
     nodes = []
     for i in range(M):
         node = LBPCA(data[i*size:(i+1)*size])
@@ -100,13 +100,14 @@ def show_hinton_weights(data):
     lbpca = LBPCA(data)
     pca = PCA(data)
     vbpca = VBPCA(np.transpose(data))
-    coord = create_distributed(data, 10)
     # LBPCA
-    lbpca.fit_transform()
+    iterations = 50
+    lbpca.fit_transform(iterations)
     weight = lbpca.W
     hinton(weight)
     figure = plt.gcf()
-    figure.canvas.set_window_title('LBPCA')
+    figure.canvas.set_window_title('LBPCA, iterations=' + str(iterations))
+    plt.title('LBPCA Hinton Diagram')
     plt.show()
     # PCA
     weight = pca.fit_transform()
@@ -114,20 +115,27 @@ def show_hinton_weights(data):
     hinton(pcs[:,:data.shape[1]-1])
     figure = plt.gcf()
     figure.canvas.set_window_title('PCA')
+    plt.title('PCA Hinton Diagram')
     plt.show()
     # Distributed LBPCA (randomized ordering)
-    # coord.randomized_fit()
-    # weight = coord.W
-    # hinton(weight)
-    # figure = plt.gcf()
-    # figure.canvas.set_window_title('Distributed LBPCA (randomized ordering)')
-    # plt.show()
-    # Distributed LBPCA (cyclic ordering)
-    coord.cyclic_fit()
+    iterations = 1000
+    coord = create_distributed(data, 10)
+    coord.randomized_fit(iterations)
     weight = coord.W
     hinton(weight)
     figure = plt.gcf()
-    figure.canvas.set_window_title('Distributed LBPCA (cyclic ordering)')
+    figure.canvas.set_window_title('Distributed LBPCA (Random), iterations=' + str(iterations))
+    plt.title('Distributed LBPCA (Randomized Ordering) Hinton Diagram')
+    plt.show()
+    # Distributed LBPCA (cyclic ordering)
+    iterations = 50
+    coord = create_distributed(data, 10)
+    coord.cyclic_fit(iterations)
+    weight = coord.W
+    hinton(weight)
+    figure = plt.gcf()
+    figure.canvas.set_window_title('Distributed LBPCA (Cyclic), iterations=' + str(iterations))
+    plt.title('Distributed LBPCA (Cyclic Ordering) Hinton Diagram')
     plt.show()
 
 if __name__ == '__main__':

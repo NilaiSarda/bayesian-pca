@@ -41,7 +41,7 @@ def plot_mse(y, maxit=25, *args, **kwargs):
         stream.averaged_fit(1)
         mses[3].append(stream.mse())
     handles = [0, 0, 0, 0]
-    labels = ["Variational bayes","Laplace approximation","Cyclic/randomized LBPCA", "Averaging LBPCA"]
+    labels = ["VBPCA","LBPCA","Batch BPCA", "Parallel BPCA"]
     for i in range(len(mses)):
         handles[i], = ax.plot(mses[i], linewidth=2, marker='o',markersize=5,label=labels[i])
     ax.grid()
@@ -210,6 +210,5 @@ def run_mse():
     plot_mse(d.data.T)
 
 if __name__ == '__main__':
-    # run_mse()
-    # run_gaussian()
     run_iris()
+    run_mse()

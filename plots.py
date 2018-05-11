@@ -182,8 +182,8 @@ def show_hinton_weights(data):
     weight = coord.W
     hinton(weight)
     figure = plt.gcf()
-    figure.canvas.set_window_title('Streaming LBPCA')
-    plt.title('Streaming LBPCA')
+    figure.canvas.set_window_title('Incremental LBPCA')
+    plt.title('Incremental LBPCA')
     plt.show()
     # Distributed LBPCA
     iterations = 50
@@ -192,8 +192,8 @@ def show_hinton_weights(data):
     weight = coord.W
     hinton(weight)
     figure = plt.gcf()
-    figure.canvas.set_window_title('Distributed LBPCA, iterations=' + str(iterations))
-    plt.title('Distributed LBPCA')
+    figure.canvas.set_window_title('Batch LBPCA, iterations=' + str(iterations))
+    plt.title('Batch LBPCA')
     plt.show()
 
 def run_iris():

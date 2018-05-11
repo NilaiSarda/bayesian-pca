@@ -22,7 +22,7 @@ def plot_grid(n, ncols=5, size=(3, 3)):
     ax = ax.ravel()
     return [fig, ax]
 
-def plot_bppca(y, y_classes, maxit=25, *args, **kwargs):
+def plot_iris(y, y_classes, maxit=25, *args, **kwargs):
     # np.random.seed(0)
     fig, ax = plot_grid(5)
     #Variational bayes
@@ -162,9 +162,14 @@ def show_hinton_weights(data):
     plt.title('Distributed LBPCA')
     plt.show()
 
-if __name__ == '__main__':
-    # stdev = [2, 2, 2, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
-    # d = GaussianDataset(stdev, 300)
-    # show_hinton_weights(np.matmul(d.data, ortho_group.rvs(dim=10)))
+def run_iris():
     i = IrisDataset()
-    plot_bppca(i.data.T, i.targets)
+    plot_iris(i.data.T, i.targets)
+
+def run_gaussian():
+    stdev = [2, 2, 2, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+    d = GaussianDataset(stdev, 300)
+    show_hinton_weights(np.matmul(d.data, ortho_group.rvs(dim=10)))
+
+if __name__ == '__main__':
+    run_iris()

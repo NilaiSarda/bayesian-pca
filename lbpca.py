@@ -103,6 +103,7 @@ class Coordinator(object):
                 node.fit()
                 self.W = node.forward(passer)
                 self.batch_mses.append(self.M*node.mse())
+        self.nodes = nodes
 
     def averaged_fit(self, iterations=50):
         data, M = self.data, self.M

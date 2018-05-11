@@ -6,7 +6,7 @@ class LBPCA(object):
         self.data = data
         self.N = self.data.shape[0]
         self.d = self.data.shape[1]
-        self.q = 2
+        self.q = self.d - 1
         self.mu = np.mean(self.data, axis=0)
         self.W = np.random.randn(self.d, self.q)
         self.sigma = 0
@@ -48,8 +48,9 @@ class LBPCA(object):
         other.alpha = self.alpha
         return other.W
 
-    def transform(self):
-        return np.dot(self.data, self.W)
+    def transform(self, q):
+        t_W = np.array(sorted(self.W.T, key=lambda r:np.linalg.norm(r), reverse=True)).T
+        return np.matmul(self.data,t_W[:,:q])
 
     def fit_transform(self, iterations=50):
         self.fit(iterations)
@@ -134,5 +135,6 @@ class Coordinator(object):
                         worker.add(leader)
         self.W = leader.W
 
-    def transform(self, y):
-        return np.dot(y,self.W)
+    def transform(self, y, q):
+        t_W = np.array(sorted(self.W.T, key=lambda r:np.linalg.norm(r), reverse=True)).T
+        return np.matmul(y,t_W[:,:q])

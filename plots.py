@@ -22,35 +22,34 @@ def plot_grid(n, ncols=5, size=(3, 3)):
     ax = ax.ravel()
     return [fig, ax]
 
-def plot_bppca(y, y_classes, maxit=10, *args, **kwargs):
-    np.random.seed(0)
+def plot_bppca(y, y_classes, maxit=25, *args, **kwargs):
+    # np.random.seed(0)
     fig, ax = plot_grid(5)
-    #PCA
-    pca = PCA(y.T)
-    print(pca.fit_transform())
-    plot_scatter(pca.fit_transform().T, y_classes, ax[4])
-    ax[4].set_title('Standard PCA')
     #Variational bayes
     vbpca = VBPCA(y, *args, **kwargs)
     for i in range(maxit):
         vbpca.update()
     plot_scatter(vbpca.transform(), y_classes, ax[0])
-    ax[0].set_title('Variational bayes PCA')
+    ax[0].set_title('VBPCA')
     #Laplace approximation
     lbpca = LBPCA(y.T)
     lbpca.fit(maxit)
-    plot_scatter(lbpca.transform().T, y_classes, ax[1])
-    ax[1].set_title('Laplace approximation PCA')
+    plot_scatter(lbpca.transform(2).T, y_classes, ax[1])
+    ax[1].set_title('LBPCA')
     #Streaming LBPCA
-    stream = create_distributed(y.T, 10)
-    stream.randomized_fit(maxit)
-    plot_scatter(stream.transform(y.T).T, y_classes, ax[2])
+    stream = create_distributed(np.copy(y.T), 10)
+    stream.randomized_fit(1)
+    plot_scatter(stream.transform(y.T, 2).T, y_classes, ax[2])
     ax[2].set_title('Streaming LBPCA')
     #Distributed LBPCA
-    stream = create_distributed(y.T, 10)
+    stream = create_distributed(np.copy(y.T), 10)
     stream.averaged_fit(maxit)
-    plot_scatter(stream.transform(y.T).T, y_classes, ax[3])
-    ax[3].set_title('Distributed PCA')
+    plot_scatter(stream.transform(y.T, 2).T, y_classes, ax[3])
+    ax[3].set_title('Distributed LBPCA')
+    #PCA
+    pca = PCA(y.T)
+    plot_scatter(pca.fit_transform().T, y_classes, ax[4])
+    ax[4].set_title('PCA')
     plt.show()
 
 def create_distributed(data, M):
@@ -164,7 +163,8 @@ def show_hinton_weights(data):
     plt.show()
 
 if __name__ == '__main__':
-    stdev = [5, 4, 3, 2, 1, 1, 1, 1, 1, 1]
+    # stdev = [2, 2, 2, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+    # d = GaussianDataset(stdev, 300)
+    # show_hinton_weights(np.matmul(d.data, ortho_group.rvs(dim=10)))
     i = IrisDataset()
-    print(i.data)
     plot_bppca(i.data.T, i.targets)

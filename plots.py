@@ -108,7 +108,7 @@ def hinton(W, max_weight=None, ax=None):
     ax.yaxis.set_major_locator(plt.NullLocator())
     for (x, y), w in np.ndenumerate(matrix):
         color = 'white' if w > 0 else 'black'
-        size = np.sqrt(np.abs(w) / max_weight)
+        size = max(np.sqrt(np.abs(w) / max_weight), 0.000001)
         rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
                              facecolor=color, edgecolor=color)
         ax.add_patch(rect)

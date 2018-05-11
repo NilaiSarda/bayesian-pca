@@ -41,6 +41,7 @@ class LBPCA(object):
         self.W = W
         self.sigma = sigma
         self.alpha = alpha
+        self.x_mean = x
 
     def forward(self, other):
         other.W = self.W
@@ -72,10 +73,22 @@ class LBPCA(object):
         print('L:', L)
         return L/N
 
+    def transform_infers(self):
+        y = (np.array(self.x_mean).reshape(self.N, -1)).dot(self.W.T) + self.mu[:, np.newaxis].T
+        return y
+
+
+    def mse(self):
+        d = self.data - self.transform_infers()
+        d = d.ravel()
+        return self.N**-1 * d.dot(d)
+
 class Coordinator(object):
 
     def __init__(self, data, M, nodes):
         self.data = data
+        self.N = self.data.shape[0]
+        self.batch_mses = []
         self.M = M
         self.nodes = nodes
 
@@ -89,7 +102,10 @@ class Coordinator(object):
                 node = LBPCA(data[i*size:(i+1)*size])
                 passer.forward(node)
                 node.fit()
+                self.nodes[i] = node
                 self.W = node.forward(passer)
+                self.batch_mses.append(self.M*node.mse())
+
 
     def averaged_fit(self, iterations=50):
         data, M = self.data, self.M
@@ -105,6 +121,7 @@ class Coordinator(object):
                 node = LBPCA(data[i*size:(i+1)*size])
                 passer.forward(node)
                 node.fit()
+                self.nodes[i] = node
                 node.add(accumulator)
             accumulator.W /= M
             accumulator.sigma /= M
@@ -138,3 +155,22 @@ class Coordinator(object):
     def transform(self, y, q):
         t_W = np.array(sorted(self.W.T, key=lambda r:np.linalg.norm(r), reverse=True)).T
         return np.matmul(y,t_W[:,:q])
+
+    def transform_infers(self):
+        x_means = []
+        mus = []
+        for node in self.nodes:
+            x_means.append(node.x_mean)
+            mus.append(node.mu)
+        self.x_mean = np.concatenate(x_means)
+        self.mu = sum(mus)/len(mus)
+        return (self.x_mean.reshape(self.N, -1)).dot(self.W.T) + self.mu[:, np.newaxis].T
+
+
+    def mse(self):
+        d = self.data - self.transform_infers()
+        d = d.ravel()
+        return self.N**-1 * d.dot(d)
+
+    def get_batch_mses(self):
+        return self.batch_mses

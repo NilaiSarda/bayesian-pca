@@ -99,3 +99,20 @@ class VBPCA(object):
             q.gamma_b += 2.0 * q.mu_mean.dot(w).dot(x[:, np.newaxis])
             q.gamma_b -= 2.0 * y.dot(w).dot(x)
             q.gamma_b -= 2.0 * y.dot(q.mu_mean)
+
+    def transform_infers(self, x=None, noise=False):
+        q = self.q_dist
+        if x is None:
+            x = q.x_mean
+        [w, mu, sigma] = [q.w_mean, q.mu_mean, q.gamma_mean()**-1]
+        y = w.dot(x) + mu[:, np.newaxis]
+        if noise:
+            for i in range(y.shape[1]):
+                e = np.random.normal(0, sigma, y.shape[0])
+                y[:, i] += e
+        return y
+
+    def mse(self):
+        d = self.y - self.transform_infers()
+        d = d.ravel()
+        return self.n**-1 * d.dot(d)

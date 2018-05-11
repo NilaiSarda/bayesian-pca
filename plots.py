@@ -16,6 +16,40 @@ def plot_scatter(x, classes, ax=None):
     colors = mapper.to_rgba(classes)
     ax.scatter(x[0, :], x[1, :], color=colors, s=20)
 
+def plot_mse(y, maxit=25, *args, **kwargs):
+    COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+    mses = [[],[],[],[]]
+    fig, ax = plt.subplots(figsize=(10, 4))
+    #Variational bayes
+    vbpca = VBPCA(y, *args, **kwargs)
+    for i in range(maxit):
+        vbpca.update()
+        mses[0].append(vbpca.mse())
+    #Laplace approximation
+    lbpca = LBPCA(y.T)
+    for i in range(maxit):
+        lbpca.fit(1)
+        mses[1].append(lbpca.mse())
+    #Distributed LBPCA
+    stream = create_distributed(np.copy(y.T), 10)
+    stream.randomized_fit(1)
+    for i in range(maxit):
+        mses[2].append(stream.mse())
+    #Streaming LBPCA
+    stream = create_distributed(np.copy(y.T), 10)
+    for i in range(maxit):
+        stream.averaged_fit(1)
+        mses[3].append(stream.mse())
+    handles = [0, 0, 0, 0]
+    labels = ["Variational bayes","Laplace approximation","Cyclic/randomized LBPCA", "Averaging LBPCA"]
+    for i in range(len(mses)):
+        handles[i], = ax.plot(mses[i], linewidth=2, marker='o',markersize=5,label=labels[i])
+    ax.grid()
+    ax.set_xlabel('Iteration')
+    ax.set_ylabel('MSE')
+    ax.legend(handles=handles)
+    plt.show()
+
 def plot_grid(n, ncols=5, size=(3, 3)):
     nrows = int(np.ceil(n/float(ncols)))
     fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=(size[0]*ncols, size[1]*nrows))
@@ -171,5 +205,9 @@ def run_gaussian():
     d = GaussianDataset(stdev, 300)
     show_hinton_weights(np.matmul(d.data, ortho_group.rvs(dim=10)))
 
+def run_mse():
+    d = IrisDataset()
+    plot_mse(d.data.T)
+
 if __name__ == '__main__':
-    run_iris()
+    run_mse()

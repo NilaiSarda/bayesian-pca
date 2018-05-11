@@ -12,8 +12,7 @@ We will (generally) follow three papers in this implementation:
 
 class PCA(object):
     def __init__(self, data):
-        self.p = dc.PCA(n_components=2)
-        # self.p = dc.PCA()
+        self.p = dc.PCA()
         self.data = data
 
     def fit(self):

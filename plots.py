@@ -74,12 +74,12 @@ def plot_iris(y, y_classes, maxit=25, *args, **kwargs):
     stream = create_distributed(np.copy(y.T), 10)
     stream.randomized_fit(1)
     plot_scatter(stream.transform(y.T, 2).T, y_classes, ax[2])
-    ax[2].set_title('Streaming LBPCA')
+    ax[2].set_title('Batch BPCA')
     #Distributed LBPCA
     stream = create_distributed(np.copy(y.T), 10)
     stream.averaged_fit(maxit)
     plot_scatter(stream.transform(y.T, 2).T, y_classes, ax[3])
-    ax[3].set_title('Distributed LBPCA')
+    ax[3].set_title('Parallel BPCA')
     #PCA
     pca = PCA(y.T)
     plot_scatter(pca.fit_transform().T, y_classes, ax[4])
@@ -164,8 +164,8 @@ def show_hinton_weights(data):
     weight = lbpca.W
     hinton(weight)
     figure = plt.gcf()
-    figure.canvas.set_window_title('LBPCA, iterations=' + str(iterations))
-    plt.title('LBPCA')
+    figure.canvas.set_window_title('BPCA, iterations=' + str(iterations))
+    plt.title('BPCA')
     plt.show()
     # PCA
     weight = pca.fit_transform()
@@ -176,14 +176,14 @@ def show_hinton_weights(data):
     plt.title('PCA')
     plt.show()
     # Streaming LBPCA
-    iterations = 1
+    iterations = 50
     coord = create_distributed(data, 10)
     coord.randomized_fit(iterations)
     weight = coord.W
     hinton(weight)
     figure = plt.gcf()
-    figure.canvas.set_window_title('Incremental LBPCA')
-    plt.title('Incremental LBPCA')
+    figure.canvas.set_window_title('Batch BPCA')
+    plt.title('Batch BPCA')
     plt.show()
     # Distributed LBPCA
     iterations = 50
@@ -192,8 +192,8 @@ def show_hinton_weights(data):
     weight = coord.W
     hinton(weight)
     figure = plt.gcf()
-    figure.canvas.set_window_title('Batch LBPCA, iterations=' + str(iterations))
-    plt.title('Batch LBPCA')
+    figure.canvas.set_window_title('Parallel BPCA, iterations=' + str(iterations))
+    plt.title('Parallel BPCA')
     plt.show()
 
 def run_iris():
@@ -210,4 +210,6 @@ def run_mse():
     plot_mse(d.data.T)
 
 if __name__ == '__main__':
-    run_mse()
+    # run_mse()
+    # run_gaussian()
+    run_iris()

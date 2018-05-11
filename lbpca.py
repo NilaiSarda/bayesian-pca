@@ -92,16 +92,17 @@ class Coordinator(object):
         data, M = self.data, self.M
         size = int(data.shape[0]/M)
         passer = LBPCA(data)
+        np.random.shuffle(data)
+        nodes = []
+        for i in range(M):
+            nodes.append(LBPCA(data[i*size:(i+1)*size]))
         for _ in range(iterations):
-            np.random.shuffle(data)
-            for i in range(M):
-                node = LBPCA(data[i*size:(i+1)*size])
+            # np.random.shuffle(nodes)
+            for node in nodes:
                 passer.forward(node)
                 node.fit()
-                self.nodes[i] = node
                 self.W = node.forward(passer)
                 self.batch_mses.append(self.M*node.mse())
-
 
     def averaged_fit(self, iterations=50):
         data, M = self.data, self.M
@@ -161,7 +162,6 @@ class Coordinator(object):
         self.x_mean = np.concatenate(x_means)
         self.mu = sum(mus)/len(mus)
         return (self.x_mean.reshape(self.N, -1)).dot(self.W.T) + self.mu[:, np.newaxis].T
-
 
     def mse(self):
         d = self.data - self.transform_infers()

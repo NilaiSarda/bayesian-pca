@@ -31,10 +31,6 @@ class LBPCA(object):
             W = np.matmul(sum([np.matmul((data[i]-mu).reshape(-1,1), x[i].T) for i in range(N)]), np.linalg.inv(sum(xx)+sigma*A))
             sigma = (1.0/(N*d)) * sum([np.linalg.norm(data[i]-mu)**2 - 2*np.matmul(np.matmul(x[i].T,W.T),data[i]-mu) + np.trace(np.matmul(xx[i], np.matmul(W.T, W))) for i in range(N)])
             M = np.matmul(W.T, W) + sigma * np.eye(q)
-            # update the moments of x_n
-            for i in range(N):
-                x[i] = np.matmul(np.matmul(np.linalg.inv(M), W.T), data[i]-mu).reshape(-1,1)
-                xx[i] = (sigma*M + np.matmul(x[i], x[i].T))
             # update alpha
             for i in range(q):
                 alpha[i] = d / (np.linalg.norm(W[:,i])**2+0.000001)
